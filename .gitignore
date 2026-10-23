@@ -1,0 +1,74 @@
+# Private source/processed data and every generated analytical artifact
+/data/
+/artifacts/
+/models/
+/mlruns/
+/mlartifacts/
+*.parquet
+*.arrow
+*.feather
+*.xlsx
+*.xls
+*.csv
+*.tsv
+*.pkl
+*.pickle
+*.joblib
+*.onnx
+*.db
+*.db-*
+*.sqlite*
+*.dump
+*.sql.gz
+
+# Secrets / machine-local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+.secrets/
+
+# Python, tools and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/
+.coverage*
+htmlcov/
+coverage.xml
+build/
+dist/
+
+# Runtime outputs and local databases
+*.log
+logs/
+postgres-data/
+pgdata/
+tmp/
+*.tmp
+*.partial
+
+# Frontend and browser-test outputs
+node_modules/
+coverage/
+playwright-report/
+test-results/
+.vite/
+
+# Editor/OS state
+.DS_Store
+.idea/
+.vscode/
+
+# The only source-controlled CSV: an authored fixture with no real records.
+!/fixtures/synthetic_retail.csv
+# Local agent/editor metadata and machine-specific reports
+.agents/
+.codex/

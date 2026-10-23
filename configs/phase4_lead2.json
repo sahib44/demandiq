@@ -1,0 +1,7 @@
+{
+  "name": "illustrative_lead_two_weeks",
+  "currency": "GBP",
+  "initial_coverage_weeks": 2.0,
+  "defaults": {"lead_time_weeks": 2},
+  "products": {}
+}

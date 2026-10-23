@@ -1,0 +1,21 @@
+{
+  "name": "illustrative_default",
+  "currency": "GBP",
+  "initial_coverage_weeks": 2.0,
+  "defaults": {
+    "lead_time_weeks": 1,
+    "review_period_weeks": 1,
+    "service_level": 0.95,
+    "unit_purchase_cost": 1.0,
+    "unit_selling_price": 2.0,
+    "holding_cost_per_unit_week": 0.02,
+    "stockout_penalty_per_unit": 3.0,
+    "order_cost": 5.0,
+    "min_order_quantity": 0,
+    "case_pack_size": 1,
+    "max_inventory_capacity": null,
+    "fixed_reorder_point": null,
+    "fixed_target_level": null
+  },
+  "products": {}
+}

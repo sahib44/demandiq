@@ -1,0 +1,123 @@
+x-backend: &backend
+  image: demandiq-backend:${DEMANDIQ_IMAGE_TAG:-local}
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  environment: &backend_environment
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-demandiq}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in an ignored .env file}@postgres:5432/${POSTGRES_DB:-demandiq}
+    DEMANDIQ_DATA_DIR: /runtime/data
+    DEMANDIQ_ARTIFACT_DIR: /runtime/artifacts
+    DEMANDIQ_LEDGER_DIR: /runtime/data/evaluation-ledger
+    JOB_MAX_ATTEMPTS: ${JOB_MAX_ATTEMPTS:-3}
+    JOB_LEASE_SECONDS: ${JOB_LEASE_SECONDS:-60}
+    JOB_POLL_SECONDS: ${JOB_POLL_SECONDS:-1}
+    MAX_REQUEST_BYTES: ${MAX_REQUEST_BYTES:-1048576}
+    CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-8080},http://127.0.0.1:${FRONTEND_PORT:-8080}
+  volumes: &runtime_volumes
+    - demandiq_data:/runtime/data
+    - demandiq_artifacts:/runtime/artifacts
+  read_only: true
+  tmpfs:
+    - /tmp:size=512m,mode=1777
+  init: true
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-demandiq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in an ignored .env file}
+      POSTGRES_DB: ${POSTGRES_DB:-demandiq}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - demandiq_postgres:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  runtime-init:
+    <<: *backend
+    user: "0:0"
+    command: ["python", "-m", "scripts.prepare_demo_bundle", "install", "--bundle-dir", "/opt/demo-bundle", "--runtime-root", "/runtime", "--if-present", "--uid", "10001"]
+    volumes:
+      - demandiq_data:/runtime/data
+      - demandiq_artifacts:/runtime/artifacts
+      - ${DEMANDIQ_DEMO_BUNDLE_DIR:-./.cache/demo-bundle}:/opt/demo-bundle:ro
+    restart: "no"
+
+  migrate:
+    <<: *backend
+    command: ["python", "-m", "alembic", "-c", "backend/alembic.ini", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      runtime-init:
+        condition: service_completed_successfully
+    restart: "no"
+
+  api:
+    <<: *backend
+    environment:
+      <<: *backend_environment
+      API_ROOT_PATH: /api
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3).read()"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
+    restart: unless-stopped
+
+  worker:
+    <<: *backend
+    command: ["python", "-m", "scripts.run_worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    image: demandiq-frontend:${DEMANDIQ_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  demo:
+    <<: *backend
+    profiles: ["demo"]
+    command: ["python", "-m", "scripts.bootstrap_demo", "--bundle-dir", "/opt/demo-bundle", "--base-url", "http://api:8000", "--output-dir", "/runtime/artifacts/backend/compose-demo"]
+    volumes:
+      - demandiq_data:/runtime/data
+      - demandiq_artifacts:/runtime/artifacts
+      - ${DEMANDIQ_DEMO_BUNDLE_DIR:-./.cache/demo-bundle}:/opt/demo-bundle:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: "no"
+
+volumes:
+  demandiq_postgres:
+  demandiq_data:
+  demandiq_artifacts:

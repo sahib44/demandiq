@@ -1,0 +1,7 @@
+{
+  "name": "exploratory_higher_holding_cost",
+  "currency": "GBP",
+  "initial_coverage_weeks": 2.0,
+  "defaults": {"holding_cost_per_unit_week": 0.10},
+  "products": {}
+}

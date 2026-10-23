@@ -1,0 +1,2 @@
+# Direct dependencies are pinned in pyproject.toml. Resolved graph lives in the lock.
+-e .[dev]

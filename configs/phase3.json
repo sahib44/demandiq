@@ -1,0 +1,18 @@
+{
+  "timeline": {
+    "start_week": "2010-12-06",
+    "train_end": "2011-07-11",
+    "validation_end": "2011-10-03",
+    "test_end": "2011-11-28",
+    "top_products": 50,
+    "n_folds": 3,
+    "min_history_weeks": 12,
+    "seasonal_period": 4,
+    "moving_window": 4,
+    "seasonal_indicators": {}
+  },
+  "seed": 42,
+  "warmup_weeks": 12,
+  "interval_coverage": 0.8,
+  "interval_scale_floor": 10.0
+}
